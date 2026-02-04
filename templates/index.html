@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Churn Prediction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>Customer Churn Prediction</h1>
+        <p>Fill in the details below to predict whether a customer is likely to churn.</p>
+
+        <form method="POST">
+            <h3>Demographics</h3>
+            <label>Gender:</label>
+            <select name="gender">
+                <option>Female</option>
+                <option>Male</option>
+            </select>
+
+            <label>Senior Citizen:</label>
+            <select name="senior_citizen">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Partner:</label>
+            <select name="partner">
+                <option>Yes</option>
+                <option>No</option>
+            </select>
+
+            <label>Dependents:</label>
+            <select name="dependents">
+                <option>Yes</option>
+                <option>No</option>
+            </select>
+
+            <h3>Services</h3>
+            <label>Phone Service:</label>
+            <select name="phone_service"><option>Yes</option><option>No</option></select>
+
+            <label>Multiple Lines:</label>
+            <select name="multiple_lines"><option>No</option><option>Yes</option><option>No phone service</option></select>
+
+            <label>Internet Service:</label>
+            <select name="internet_service"><option>DSL</option><option>Fiber optic</option><option>No</option></select>
+
+            <label>Online Security:</label>
+            <select name="online_security"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <label>Online Backup:</label>
+            <select name="online_backup"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <label>Device Protection:</label>
+            <select name="device_protection"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <label>Tech Support:</label>
+            <select name="tech_support"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <label>Streaming TV:</label>
+            <select name="streaming_tv"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <label>Streaming Movies:</label>
+            <select name="streaming_movies"><option>No</option><option>Yes</option><option>No internet service</option></select>
+
+            <h3>Account</h3>
+            <label>Tenure (months):</label>
+            <input type="number" name="tenure" value="12">
+
+            <label>Contract:</label>
+            <select name="contract"><option>Month-to-month</option><option>One year</option><option>Two year</option></select>
+
+            <label>Paperless Billing:</label>
+            <select name="paperless_billing"><option>Yes</option><option>No</option></select>
+
+            <label>Payment Method:</label>
+            <select name="payment_method">
+                <option>Electronic check</option>
+                <option>Mailed check</option>
+                <option>Bank transfer (automatic)</option>
+                <option>Credit card (automatic)</option>
+            </select>
+
+            <label>Monthly Charges:</label>
+            <input type="number" name="monthly_charges" value="50" step="0.1">
+
+            <label>Total Charges:</label>
+            <input type="number" name="total_charges" value="600" step="0.1">
+
+            <button type="submit">Predict Churn</button>
+        </form>
+
+        {% if result %}
+            <div class="result">
+                <h2>Prediction: {{ result }}</h2>
+                <p>Confidence: {{ confidence }}</p>
+                <p>Risk Level: {{ risk }}</p>
+                <div id="plotly-div"></div>
+                <script>
+                    var fig = {{ chart | safe }};
+                    Plotly.newPlot('plotly-div', fig.data, fig.layout);
+                </script>
+            </div>
+        {% endif %}
+
+           <footer>Powered by Rohit</footer>
+    </div>
+
+</body>
+</html>
