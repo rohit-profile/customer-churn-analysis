@@ -1,15 +1,14 @@
-from flask import Flask, render_template, request
-import pandas as pd
-import pickle
-import plotly
-import plotly.graph_objects as go
+from flask import Flask, render_template, request 
+import pandas as pd 
+import pickle 
+import plotly 
+import plotly.graph_objects as go 
 import json
+
 
 app = Flask(__name__)
 
-# -------------------------------
-# Load model and encoders safely
-# -------------------------------
+# Load model and encoders
 def load_model():
     try:
         model = pickle.load(open('model.pkl', 'rb'))
@@ -20,9 +19,7 @@ def load_model():
 
 model, encoders = load_model()
 
-# -------------------------------
-# Plotly bar chart helper
-# -------------------------------
+# Helper function to create Plotly bar chart JSON
 def create_prob_chart(proba):
     fig = go.Figure(data=[
         go.Bar(name='No Churn', x=['Probability'], y=[proba[0]], marker_color='#2ecc71'),
@@ -36,9 +33,6 @@ def create_prob_chart(proba):
     )
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-# -------------------------------
-# Main route
-# -------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -49,82 +43,72 @@ def index():
     if model is None or encoders is None:
         return "Model or encoders not found. Please generate model files first."
 
-  if request.method == "POST":
-    # -------------------------------
-    # Step 1: Gather form input
-    # -------------------------------
-    input_data = {
-        'gender': request.form["gender"],
-        'SeniorCitizen': int(request.form["senior_citizen"]),
-        'Partner': request.form["partner"],
-        'Dependents': request.form["dependents"],
-        'tenure': int(request.form["tenure"]),
-        'PhoneService': request.form["phone_service"],
-        'MultipleLines': request.form["multiple_lines"],
-        'InternetService': request.form["internet_service"],
-        'OnlineSecurity': request.form["online_security"],
-        'OnlineBackup': request.form["online_backup"],
-        'DeviceProtection': request.form["device_protection"],
-        'TechSupport': request.form["tech_support"],
-        'StreamingTV': request.form["streaming_tv"],
-        'StreamingMovies': request.form["streaming_movies"],
-        'Contract': request.form["contract"],
-        'PaperlessBilling': request.form["paperless_billing"],
-        'PaymentMethod': request.form["payment_method"],
-        'MonthlyCharges': float(request.form["monthly_charges"]),
-        'TotalCharges': float(request.form["total_charges"])
-    }
+    if request.method == "POST":
+        # Get form inputs
+        gender = request.form["gender"]
+        senior_citizen = int(request.form["senior_citizen"])
+        partner = request.form["partner"]
+        dependents = request.form["dependents"]
+        phone_service = request.form["phone_service"]
+        multiple_lines = request.form["multiple_lines"]
+        internet_service = request.form["internet_service"]
+        online_security = request.form["online_security"]
+        online_backup = request.form["online_backup"]
+        device_protection = request.form["device_protection"]
+        tech_support = request.form["tech_support"]
+        streaming_tv = request.form["streaming_tv"]
+        streaming_movies = request.form["streaming_movies"]
+        tenure = int(request.form["tenure"])
+        contract = request.form["contract"]
+        paperless_billing = request.form["paperless_billing"]
+        payment_method = request.form["payment_method"]
+        monthly_charges = float(request.form["monthly_charges"])
+        total_charges = float(request.form["total_charges"])
 
-    input_df = pd.DataFrame([input_data])
+        # Prepare DataFrame
+        input_data = {
+            'gender': gender,
+            'SeniorCitizen': senior_citizen,
+            'Partner': partner,
+            'Dependents': dependents,
+            'tenure': tenure,
+            'PhoneService': phone_service,
+            'MultipleLines': multiple_lines,
+            'InternetService': internet_service,
+            'OnlineSecurity': online_security,
+            'OnlineBackup': online_backup,
+            'DeviceProtection': device_protection,
+            'TechSupport': tech_support,
+            'StreamingTV': streaming_tv,
+            'StreamingMovies': streaming_movies,
+            'Contract': contract,
+            'PaperlessBilling': paperless_billing,
+            'PaymentMethod': payment_method,
+            'MonthlyCharges': monthly_charges,
+            'TotalCharges': total_charges
+        }
 
-    # -------------------------------
-    # Step 2: Encode binary features
-    # -------------------------------
-    input_df['gender'] = input_df['gender'].map({'Male':1,'Female':0})
-    for col in ['Partner','Dependents','PhoneService','PaperlessBilling']:
-        input_df[col] = input_df[col].map({'Yes':1,'No':0})
+        input_df = pd.DataFrame([input_data])
 
-    # -------------------------------
-    # Step 3: Encode remaining categorical features
-    # -------------------------------
-    for column, encoder in encoders.items():
-        if column in input_df.columns and input_df[column].dtype == 'object':
-            input_df[column] = encoder.transform(input_df[column])
+        # Encode binary features
+        input_df['gender'] = input_df['gender'].map({'Male': 1, 'Female': 0})
+        for col in ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling']:
+            input_df[col] = input_df[col].map({'Yes': 1, 'No': 0})
 
-    # -------------------------------
-    # Step 4: Ensure numeric columns only are float
-    # -------------------------------
-    numeric_cols = ['SeniorCitizen','tenure','MonthlyCharges','TotalCharges','gender','Partner','Dependents','PhoneService','PaperlessBilling']
-    input_df[numeric_cols] = input_df[numeric_cols].astype(float)
+        # Encode categorical features using saved encoders
+        for column, encoder in encoders.items():
+            if column in input_df.columns and input_df[column].dtype == 'object':
+                input_df[column] = encoder.transform(input_df[column])
 
-    # -------------------------------
-    # Step 5: Reorder columns to match training
-    # -------------------------------
-    training_cols = model.get_booster().feature_names
-    input_df = input_df[training_cols]
-
-    # -------------------------------
-    # Step 6: Fill missing values
-    # -------------------------------
-    input_df.fillna(0, inplace=True)
-
-    # -------------------------------
-    # Step 7: Predict safely
-    # -------------------------------
-    try:
+        # Make prediction
         prediction = model.predict(input_df)[0]
         proba = model.predict_proba(input_df)[0]
-    except Exception as e:
-        print("Prediction Error:", e)
-        return render_template("index.html", result=f"Error: {e}")
 
-    # -------------------------------
-    # Step 8: Prepare output
-    # -------------------------------
-    result = "WILL CHURN" if prediction == 1 else "WILL STAY"
-    confidence = f"{max(proba)*100:.1f}%"
-    risk = "High" if proba[1]>0.7 else "Medium" if proba[1]>0.4 else "Low"
-    chart = create_prob_chart(proba)
+        # Prepare output
+        result = "WILL CHURN" if prediction == 1 else "WILL STAY"
+        confidence = f"{max(proba) * 100:.1f}%"
+        risk = "High" if proba[1] > 0.7 else "Medium" if proba[1] > 0.4 else "Low"
+        chart = create_prob_chart(proba)
 
     return render_template("index.html",
                            result=result,
@@ -132,9 +116,5 @@ def index():
                            risk=risk,
                            chart=chart)
 
-
-# -------------------------------
-# Run app
-# -------------------------------
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
