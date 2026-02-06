@@ -1,105 +1,74 @@
-import streamlit as st
+from flask import Flask, render_template, request
 import pandas as pd
 import pickle
-import plotly.graph_objects as go
+import os
 
-# Load model and encoders
-@st.cache_resource
-def load_model():
-    model = pickle.load(open('model.pkl', 'rb'))
-    encoders = pickle.load(open('encoders.pkl', 'rb'))
-    return model, encoders
+app = Flask(__name__)
 
-model, encoders = load_model()
+# Load model safely
+MODEL_PATH = os.path.join(os.getcwd(), "model.pkl")
+ENCODER_PATH = os.path.join(os.getcwd(), "encoders.pkl")
 
-st.set_page_config(page_title="Customer Churn Predictor", layout="centered")
-st.title("📊 Customer Churn Prediction App")
+model = pickle.load(open(MODEL_PATH, "rb"))
+encoders = pickle.load(open(ENCODER_PATH, "rb"))
 
-# Sidebar inputs
-st.sidebar.header("Customer Details")
+@app.route("/", methods=["GET", "POST"])
+def index():
+    prediction = None
+    confidence = None
+    risk = None
+    proba = None
 
-gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
-senior_citizen = st.sidebar.selectbox("Senior Citizen", [0, 1])
-partner = st.sidebar.selectbox("Partner", ["Yes", "No"])
-dependents = st.sidebar.selectbox("Dependents", ["Yes", "No"])
-phone_service = st.sidebar.selectbox("Phone Service", ["Yes", "No"])
-multiple_lines = st.sidebar.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
-internet_service = st.sidebar.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-online_security = st.sidebar.selectbox("Online Security", ["Yes", "No", "No internet service"])
-online_backup = st.sidebar.selectbox("Online Backup", ["Yes", "No", "No internet service"])
-device_protection = st.sidebar.selectbox("Device Protection", ["Yes", "No", "No internet service"])
-tech_support = st.sidebar.selectbox("Tech Support", ["Yes", "No", "No internet service"])
-streaming_tv = st.sidebar.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
-streaming_movies = st.sidebar.selectbox("Streaming Movies", ["Yes", "No", "No internet service"])
-contract = st.sidebar.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-paperless_billing = st.sidebar.selectbox("Paperless Billing", ["Yes", "No"])
-payment_method = st.sidebar.selectbox(
-    "Payment Method",
-    ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"]
-)
+    if request.method == "POST":
+        input_data = {
+            'gender': request.form['gender'],
+            'SeniorCitizen': int(request.form['SeniorCitizen']),
+            'Partner': request.form['Partner'],
+            'Dependents': request.form['Dependents'],
+            'tenure': int(request.form['tenure']),
+            'PhoneService': request.form['PhoneService'],
+            'MultipleLines': request.form['MultipleLines'],
+            'InternetService': request.form['InternetService'],
+            'OnlineSecurity': request.form['OnlineSecurity'],
+            'OnlineBackup': request.form['OnlineBackup'],
+            'DeviceProtection': request.form['DeviceProtection'],
+            'TechSupport': request.form['TechSupport'],
+            'StreamingTV': request.form['StreamingTV'],
+            'StreamingMovies': request.form['StreamingMovies'],
+            'Contract': request.form['Contract'],
+            'PaperlessBilling': request.form['PaperlessBilling'],
+            'PaymentMethod': request.form['PaymentMethod'],
+            'MonthlyCharges': float(request.form['MonthlyCharges']),
+            'TotalCharges': float(request.form['TotalCharges'])
+        }
 
-tenure = st.sidebar.number_input("Tenure (months)", min_value=0)
-monthly_charges = st.sidebar.number_input("Monthly Charges", min_value=0.0)
-total_charges = st.sidebar.number_input("Total Charges", min_value=0.0)
+        df = pd.DataFrame([input_data])
 
-if st.button("🔍 Predict Churn"):
-    input_data = {
-        'gender': gender,
-        'SeniorCitizen': senior_citizen,
-        'Partner': partner,
-        'Dependents': dependents,
-        'tenure': tenure,
-        'PhoneService': phone_service,
-        'MultipleLines': multiple_lines,
-        'InternetService': internet_service,
-        'OnlineSecurity': online_security,
-        'OnlineBackup': online_backup,
-        'DeviceProtection': device_protection,
-        'TechSupport': tech_support,
-        'StreamingTV': streaming_tv,
-        'StreamingMovies': streaming_movies,
-        'Contract': contract,
-        'PaperlessBilling': paperless_billing,
-        'PaymentMethod': payment_method,
-        'MonthlyCharges': monthly_charges,
-        'TotalCharges': total_charges
-    }
+        # Binary encoding
+        df['gender'] = df['gender'].map({'Male': 1, 'Female': 0})
+        for col in ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling']:
+            df[col] = df[col].map({'Yes': 1, 'No': 0})
 
-    input_df = pd.DataFrame([input_data])
+        # Encoder transform
+        for col, encoder in encoders.items():
+            if col in df.columns:
+                df[col] = encoder.transform(df[col])
 
-    # Binary encoding
-    input_df['gender'] = input_df['gender'].map({'Male': 1, 'Female': 0})
-    for col in ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling']:
-        input_df[col] = input_df[col].map({'Yes': 1, 'No': 0})
+        # Prediction
+        pred = model.predict(df)[0]
+        proba = model.predict_proba(df)[0]
 
-    # Categorical encoding
-    for column, encoder in encoders.items():
-        if column in input_df.columns:
-            input_df[column] = encoder.transform(input_df[column])
+        prediction = "WILL CHURN 🚨" if pred == 1 else "WILL STAY ✅"
+        confidence = f"{max(proba) * 100:.1f}%"
+        risk = "High" if proba[1] > 0.7 else "Medium" if proba[1] > 0.4 else "Low"
 
-    # Prediction
-    prediction = model.predict(input_df)[0]
-    proba = model.predict_proba(input_df)[0]
-
-    result = "🚨 WILL CHURN" if prediction == 1 else "✅ WILL STAY"
-    confidence = f"{max(proba) * 100:.1f}%"
-    risk = "High" if proba[1] > 0.7 else "Medium" if proba[1] > 0.4 else "Low"
-
-    st.subheader("📌 Prediction Result")
-    st.write(f"**Result:** {result}")
-    st.write(f"**Confidence:** {confidence}")
-    st.write(f"**Risk Level:** {risk}")
-
-    # Plotly chart
-    fig = go.Figure(data=[
-        go.Bar(name='No Churn', x=['Probability'], y=[proba[0]], marker_color='#2ecc71'),
-        go.Bar(name='Churn', x=['Probability'], y=[proba[1]], marker_color='#e74c3c')
-    ])
-    fig.update_layout(
-        title="Prediction Probabilities",
-        yaxis_title="Probability",
-        barmode='group',
-        height=350
+    return render_template(
+        "index.html",
+        prediction=prediction,
+        confidence=confidence,
+        risk=risk,
+        proba=proba
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+if __name__ == "__main__":
+    app.run(debug=True)
