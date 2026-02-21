@@ -1,6 +1,6 @@
 # Customer Churn Analysis
 
-![Python](https://img.shields.io/badge/python-3.10-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Issues](https://img.shields.io/github/issues/<username>/<repo_name>)
+![Python](https://img.shields.io/badge/python-3.10-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Issues](https://img.shields.io/github/issues/<rohit-profile>/<rohit-profile>)
 
 ## Project Overview
 Customer churn is a critical metric for businesses, indicating the percentage of customers who stop using a company's products or services over a given period. This project analyzes customer data to identify patterns and factors influencing churn. Insights derived can help design strategies to retain customers and improve business growth.
@@ -9,7 +9,7 @@ Customer churn is a critical metric for businesses, indicating the percentage of
 
 ## Live Deployment
 You can explore the interactive dashboard for customer churn analysis here:  
-[🔗 View Deployment](https://<your-deployment-link>.streamlit.app)  
+[🔗 View Deployment]([https://<your-deployment-link>.streamlit.app](https://customer-churn-analysis-sbqx.onrender.com))  
 
 ---
 
@@ -69,7 +69,9 @@ The dataset contains information about customer demographics, services, and acco
 - **Jupyter Notebook / Streamlit**  
 
 ---
+## Live Link--> (https://customer-churn-analysis-sbqx.onrender.com)
 
+---
 ## Project Workflow
 ```mermaid
 flowchart LR
@@ -79,3 +81,4 @@ flowchart LR
     D --> E[Model Building]
     E --> F[Model Evaluation]
     F --> G[Insights & Recommendations]
+
