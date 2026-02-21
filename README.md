@@ -9,7 +9,7 @@ Customer churn is a critical metric for businesses, indicating the percentage of
 
 ## Live Deployment
 You can explore the interactive dashboard for customer churn analysis here:  
-[🔗 View Deployment]((https://customer-churn-analysis-sbqx.onrender.com))  
+[🔗 View Deployment](https://customer-churn-analysis-sbqx.onrender.com)  
 
 ---
 
@@ -81,5 +81,6 @@ flowchart LR
     D --> E[Model Building]
     E --> F[Model Evaluation]
     F --> G[Insights & Recommendations]
+
 
 
